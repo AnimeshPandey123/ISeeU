@@ -1,15 +1,16 @@
 from flask import Flask, jsonify, render_template
 from check_celery import make_celery
 from learn import *
+import os
 
 import json
 
 app = Flask(__name__)
 
-app.config['CELERY_BROKER_URL'] = 'amqp://localhost//'
-app.config['CELERY_RESULT_BACKEND'] = ''
+# app.config['CELERY_BROKER_URL'] = os.environ.get('amqp://localhost//')
+# app.config['CELERY_RESULT_BACKEND'] = ''
 
-celery = make_celery(app)
+# celery = make_celery(app)
 
 stores = [
 	{
@@ -32,17 +33,17 @@ stores = [
 	}
 ]
 
-@app.route('/process/<name>')
-def process(name):
-	reverse.apply_async(args=[name], countdown=3)
-	return 'I sent an async request!'
+# @app.route('/process/<name>')
+# def process(name):
+# 	reverse.apply_async(args=[name], countdown=3)
+# 	return 'I sent an async request!'
 
-@celery.task(name='app.reverse')
-def reverse(string):
-	f = open("mytext.txt", "a")
-	f.write(string[::-1])
-	f.close()
-	return string[::-1]
+# @celery.task(name='app.reverse')
+# def reverse(string):
+# 	f = open("mytext.txt", "a")
+# 	f.write(string[::-1])
+# 	f.close()
+# 	return string[::-1]
 
 @app.route('/')
 def home():
@@ -51,18 +52,18 @@ def home():
 	f.close()
 	return render_template('index.html')
 
-@app.route('/training')
-def training():
-	learn.apply_async(countdown=3)
-	return jsonify({'data': 'tarining'})
+# @app.route('/training')
+# def training():
+# 	learn.apply_async(countdown=3)
+# 	return jsonify({'data': 'tarining'})
 
-@celery.task(name='app.learn')
-def learn():
-	f = TrainModel()
-	k = f.train()
-	f.withImage()
-	f.saveModel()
-	return 'Completed'
+# @celery.task(name='app.learn')
+# def learn():
+# 	f = TrainModel()
+# 	k = f.train()
+# 	f.withImage()
+# 	f.saveModel()
+# 	return 'Completed'
 
 @app.route('/getEpoch')
 def tragetEpochining():
