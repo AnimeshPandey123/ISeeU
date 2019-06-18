@@ -1,56 +1,34 @@
-from flask import Flask, jsonify, render_template
-from check_celery import make_celery
+from flask import Flask, jsonify, render_template, request, url_for
 from learn import *
 import os
-
+from werkzeug.utils import secure_filename
 import json
+import time
+import requests
+
+__author__ = 'animesh'
 
 app = Flask(__name__)
 
+APP_ROOT = os.path.dirname(os.path.abspath(__file__))
+
 # app.config['CELERY_BROKER_URL'] = os.environ.get('amqp://localhost//')
 # app.config['CELERY_RESULT_BACKEND'] = ''
-
 # celery = make_celery(app)
 
-stores = [
-	{
-		'name':'My Wonderful Store',
-		'items': [
-			{
-				'name': 'My Item',
-				'price': 15.99
-			}
-		]
-	},
-	{
-		'name':'asd',
-		'items': [
-			{
-				'name': 'sss',
-				'price': 15.99
-			}
-		]
-	}
-]
+UPLOAD_FOLDER = '/images'
+ALLOWED_EXTENSIONS = set(['txt', 'pdf', 'png', 'jpg', 'jpeg'])
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
-# @app.route('/process/<name>')
-# def process(name):
-# 	reverse.apply_async(args=[name], countdown=3)
-# 	return 'I sent an async request!'
 
-# @celery.task(name='app.reverse')
-# def reverse(string):
-# 	f = open("mytext.txt", "a")
-# 	f.write(string[::-1])
-# 	f.close()
-# 	return string[::-1]
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
 
 @app.route('/')
 def home():
-	f = open("mytext.txt", "a")
-	f.write("Now the file has more content!")
-	f.close()
-	return render_template('index.html')
+    return render_template('index.html')
 
 # @app.route('/training')
 # def training():
@@ -65,62 +43,67 @@ def home():
 # 	f.saveModel()
 # 	return 'Completed'
 
+
 @app.route('/getEpoch')
 def tragetEpochining():
-	f = open("log.txt", "r")
-	return f.read()
+    f = open("log.txt", "r")
+    return f.read()
+
 
 @app.route('/test')
 def test():
-	f =  TrainModel()
-	f.loadModel()
-	pred = f.predictImage()
-	return pred
+    f = TrainModel()
+    f.loadModel()
+    pred = f.predictImage()
+    return pred
 
 
-# # POST /store data: {name:}
-# @app.route('/store', methods=['POST'])
-# def create_store():
-# 	request_data = request.get_json()
-# 	new_store = {
-# 		'name': request_data['name'],
-# 		'items': []
-# 	}
-# 	stores.append(new_store)
-# 	return jsonify(new_store)
+@app.route('/uploader', methods=['GET', 'POST'])
+def upload_file():
+    if request.method == 'POST':
+        # check if the post request has the file part
+        if 'file' not in request.files:
+            return 'No file part'
+        file = request.files['file']
+        # if user does not select file, browser also
+        # submit a empty part without filename
+        target = os.path.join(APP_ROOT, 'images/')
+        print(target)
+        if not os.path.isdir(target):
+            os.mkdir(target)
 
-# @app.route('/store/<string:name>')
-# def get_store(name):
-# 	# Iterate over stores
-# 	for i in stores:
-# 		if i['name'] == name:
-# 			return jsonify({'item':i});
+        classifier = TrainModel()
+        classifier.loadModel()
 
-# 	return jsonify({'error': 'Not Found'});
+        for file in request.files.getlist('file'):
+            print(file)
+            filename = time.strftime("%Y%m%d-%H%M%S") + file.filename
+            destination = "".join([target, filename])
+            print(destination)
+            file.save(destination)
 
-# @app.route('/store/')
-# def get_stores():
-# 	return jsonify({'stores': stores})
+        result = classifier.predictImage(destination)
+        conv_curr = getValue(1, "USD")
+        par = "The NRP " + str(1) + " is " + \
+            conv_curr['amnt'] + " " + conv_curr['BaseCurrency']
+        return jsonify({'paragraph': par})
+    return render_template('upload.html')
 
-# @app.route('/store/<string:name>/item', methods=['POST'])
-# def create_item_in_store(name):
-# 	request_data = request.get_json()
-# 	new_item = {
-# 		'name': request_data['name'],
-# 		'price': request_data['price']
-# 	}
-# 	for i in stores:
-# 		if i['name'] == name:
-# 			i['items'].append(new_item)
-# 			return jsonify({'items': i});
-# 	return jsonify({'error': 'Not Found'});
 
-# @app.route('/store/<string:name>/item', methods=['GET'])
-# def get_items_in_store(name):
-# 	for i in stores:
-# 		if i['name'] == name:
-# 			return jsonify({'items':i['items']});
-# 	return jsonify({'error': 'Not Found'});
+def getValue(num, cur):
+    url = 'https://nrb.org.np/exportForexJSON.php'
+    r = requests.get(url=url)
+    data = r.json()
+    conv_curr = {}
+    for i in data['Conversion']['Currency']:
+        if i['BaseCurrency'] == cur:
+            amnt = float(i['TargetBuy']) / float(i['BaseValue'])
+            print(amnt)
+            conv_curr = i
+            print(conv_curr)
+            converted = str(1 / amnt * num)
+            conv_curr['amnt'] = converted
+    return conv_curr
 
 if __name__ == '__main__':
-	app.run()
+    app.run(debug=True)
