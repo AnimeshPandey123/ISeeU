@@ -88,9 +88,9 @@ class TrainModel():
         # return result
 
         if result[0][0] == 1:
-            prediction = 'dog'
+            prediction = '500'
         else:
-            prediction = 'cat'
+            prediction = '1000'
         return prediction
 
     def saveModel(self):
