@@ -100,7 +100,7 @@ class TrainModel():
     def loadModel(self):
         keras.backend.clear_session()
         self.classifier = None
-        self.classifier = load_model('newer.h5')
+        self.classifier = load_model('money_detection.h5')
         return self.classifier
 
 
