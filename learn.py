@@ -10,6 +10,7 @@ import numpy as np
 import keras as keras
 from keras.preprocessing import image
 from keras.models import load_model
+from tensorflow import keras
 # Installing Theano
 # pip install --upgrade --no-deps git+git://github.com/Theano/Theano.git
 
@@ -86,12 +87,14 @@ class TrainModel():
         # training_set.class_indices
         # print(result)
         # return result
+        resultClasses = self.classifier.predict_classes(test_image)
+        # print(resultClasses)
+        dict = {0: '10', 1: '100', 2: '1000', 3: '20',
+                4: '5', 5: '50', 6: '500', 7: 'none'}
 
-        if result[0][0] == 1:
-            prediction = '500'
-        else:
-            prediction = '1000'
-        return prediction
+        prediction = dict[resultClasses[0]]
+
+        return int(prediction)
 
     def saveModel(self):
         self.classifier.save('newer.h5')
@@ -100,7 +103,8 @@ class TrainModel():
     def loadModel(self):
         keras.backend.clear_session()
         self.classifier = None
-        self.classifier = load_model('money_detection.h5')
+        self.classifier = keras.models.load_model(
+            '128-nodes-0-dense-1561369711h5')
         return self.classifier
 
 

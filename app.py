@@ -1,5 +1,5 @@
 from flask import Flask, jsonify, render_template, request, url_for
-from learn import *
+from learn import TrainModel
 import os
 from werkzeug.utils import secure_filename
 import json
@@ -62,6 +62,7 @@ def test():
 def upload_file():
     if request.method == 'POST':
         # check if the post request has the file part
+
         if 'file' not in request.files:
             return 'No file part'
         file = request.files['file']
@@ -69,6 +70,7 @@ def upload_file():
         # submit a empty part without filename
         target = os.path.join(APP_ROOT, 'images/')
         print(target)
+
         if not os.path.isdir(target):
             os.mkdir(target)
 
@@ -82,18 +84,36 @@ def upload_file():
             print(destination)
             file.save(destination)
 
-        result = classifier.predictImage(destination)
-        conv_curr = getValue(1, "USD")
-        par = "The NRP " + str(1) + " is " + \
+            result = classifier.predictImage(destination)
+
+        currency = ''
+        if 'currency' not in request.form:
+            currency = 'USD'
+        else:
+            currency = request.form.get('currency')
+        conv_curr = getValue(result, currency)
+        print(conv_curr)
+        val = "Npr " + str(result)
+        val_par = "The ammount is " + val
+        par = "The NRP " + str(result) + " is " + \
             conv_curr['amnt'] + " " + conv_curr['BaseCurrency']
-        return jsonify({'paragraph': par})
+
+        return jsonify({'paragraph': par, "value": val, "val_par": val_par})
+
     return render_template('upload.html')
+
+
+@app.route('/testing')
+def testin():
+    return 'Test Successfull'
 
 
 def getValue(num, cur):
     url = 'https://nrb.org.np/exportForexJSON.php'
     r = requests.get(url=url)
     data = r.json()
+    # print(data)
+    print(cur)
     conv_curr = {}
     for i in data['Conversion']['Currency']:
         if i['BaseCurrency'] == cur:
@@ -101,9 +121,13 @@ def getValue(num, cur):
             print(amnt)
             conv_curr = i
             print(conv_curr)
-            converted = str(1 / amnt * num)
+            converted = (1 / amnt * num)
+            converted = round(converted, 4)
+            converted = str(converted)
+            print(converted)
             conv_curr['amnt'] = converted
+    print(conv_curr)
     return conv_curr
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run()
